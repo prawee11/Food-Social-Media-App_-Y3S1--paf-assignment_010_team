@@ -1,0 +1,354 @@
+Index: src/user/profile/Profile.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>/* eslint-disable jsx-a11y/anchor-is-valid */\r\nimport React, { useEffect, useState } from \"react\";\r\nimport \"./Profile.css\";\r\nimport CreatePost from \"../../components/CreatePost\";\r\nimport Post from \"../../components/Post\";\r\nimport { getAllPost } from \"../../util/APIUtils\";\r\nimport { toast } from \"react-toastify\";\r\n\r\nconst Profile = ({ currentUser }) => {\r\n  const [posts, setPosts] = useState([]);\r\n\r\n  const fetchAllPost = async () => {\r\n    try {\r\n      const response = await getAllPost();\r\n      if (!response.length) return;\r\n\r\n      setPosts(\r\n        response.reverse().filter(post => post.userId === currentUser.id)\r\n      );\r\n    } catch (error) {\r\n      toast(\"Oops something went wrong!\", { type: \"error\" });\r\n    }\r\n  };\r\n\r\n  useEffect(() => {\r\n    fetchAllPost();\r\n  }, []);\r\n\r\n  return (\r\n    <>\r\n      <header aria-label=\"Page Header\" className=\"bg-blue-100\">\r\n        <div className=\"mx-auto max-w-screen-xl px-4 py-8 sm:px-6 lg:px-8\">\r\n          <div className=\"mt-8\">\r\n            <a href=\"#\" className=\"block shrink-0\">\r\n              <span className=\"sr-only\">Profile</span>\r\n              <img\r\n                alt={currentUser.name}\r\n                src={currentUser.imageUrl}\r\n                className=\"h-100 w-100 mb-2 rounded-full object-cover\"\r\n              />\r\n            </a>\r\n            <h1 className=\"text-2xl font-bold text-gray-900 sm:text-3xl\">\r\n              Welcome Back, {currentUser.name}\r\n            </h1>\r\n\r\n            <p className=\"mt-1.5 text-sm text-gray-500\">{currentUser.email}</p>\r\n          </div>\r\n        </div>\r\n      </header>\r\n\r\n      <div className=\"home-container\">\r\n        <div className=\"container\">\r\n          <CreatePost currentUser={currentUser} refetchPosts={fetchAllPost} />\r\n\r\n          {posts.map(post => (\r\n            <Post key={post.id} currentUser={currentUser} {...post} />\r\n          ))}\r\n        </div>\r\n      </div>\r\n    </>\r\n  );\r\n};\r\n\r\nexport default Profile;\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/user/profile/Profile.js b/src/user/profile/Profile.js
+--- a/src/user/profile/Profile.js	(revision b66565a864d0fbd929c74ebb9adee6404e0ea5ed)
++++ b/src/user/profile/Profile.js	(date 1683309268509)
+@@ -3,8 +3,9 @@
+ import "./Profile.css";
+ import CreatePost from "../../components/CreatePost";
+ import Post from "../../components/Post";
+-import { getAllPost } from "../../util/APIUtils";
++import {deleteProfileById, getAllPost} from "../../util/APIUtils";
+ import { toast } from "react-toastify";
++import {ACCESS_TOKEN} from "../../constants";
+ 
+ const Profile = ({ currentUser }) => {
+   const [posts, setPosts] = useState([]);
+@@ -26,6 +27,22 @@
+     fetchAllPost();
+   }, []);
+ 
++  const editProfile = async () => {
++    toast("edit profile!", { type: "success" });
++  };
++
++  const deleteProfile = async () => {
++    try {
++      const response = await deleteProfileById(currentUser.id);
++      if (response != null) {
++        toast("profile remove successfully", { type: "success" });
++        localStorage.removeItem(ACCESS_TOKEN);
++        window.location.href = "/login";
++      }
++    } catch (error) {
++      toast("Oops something went wrong!", { type: "error" });
++    }
++  };
+   return (
+     <>
+       <header aria-label="Page Header" className="bg-blue-100">
+@@ -44,6 +61,26 @@
+             </h1>
+ 
+             <p className="mt-1.5 text-sm text-gray-500">{currentUser.email}</p>
++          </div>
++        </div>
++        <div className="count ml-auto">
++          <div className="buttons flex">
++            <div
++                onClick={editProfile}
++                className="btn border border-indigo-500 p-1 px-4 font-semibold cursor-pointer text-gray-200 bg-indigo-500 ml-auto"
++            >
++              Edit Profile
++            </div>
++          </div>
++        </div>
++        <div className="count ml-auto">
++          <div className="buttons flex">
++            <div
++                onClick={deleteProfile}
++                className="btn border border-indigo-500 p-1 px-4 font-semibold cursor-pointer text-gray-200 bg-indigo-500 ml-auto"
++            >
++              Delete Profile
++            </div>
+           </div>
+         </div>
+       </header>
+Index: src/util/APIUtils.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { API_BASE_URL, ACCESS_TOKEN } from \"../constants\";\r\n\r\nconst request = options => {\r\n  const headers = new Headers({\r\n    \"Content-Type\": \"application/json\"\r\n  });\r\n\r\n  if (localStorage.getItem(ACCESS_TOKEN)) {\r\n    headers.append(\r\n      \"Authorization\",\r\n      \"Bearer \" + localStorage.getItem(ACCESS_TOKEN)\r\n    );\r\n  }\r\n\r\n  const defaults = { headers: headers };\r\n  options = Object.assign({}, defaults, options);\r\n\r\n  return fetch(options.url, options).then(response =>\r\n    response.json().then(json => {\r\n      if (!response.ok) {\r\n        return Promise.reject(json);\r\n      }\r\n      return json;\r\n    })\r\n  );\r\n};\r\n\r\nexport function getCurrentUser() {\r\n  if (!localStorage.getItem(ACCESS_TOKEN)) {\r\n    return Promise.reject(\"No access token set.\");\r\n  }\r\n\r\n  return request({\r\n    url: API_BASE_URL + \"/user/me\",\r\n    method: \"GET\"\r\n  });\r\n}\r\n\r\nexport function login(loginRequest) {\r\n  return request({\r\n    url: API_BASE_URL + \"/auth/login\",\r\n    method: \"POST\",\r\n    body: JSON.stringify(loginRequest)\r\n  });\r\n}\r\n\r\nexport function signup(signupRequest) {\r\n  return request({\r\n    url: API_BASE_URL + \"/auth/signup\",\r\n    method: \"POST\",\r\n    body: JSON.stringify(signupRequest)\r\n  });\r\n}\r\n\r\nexport function getAllPost() {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/v1/posts/\",\r\n    method: \"GET\"\r\n  });\r\n}\r\n\r\nexport function createPost(post) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/v1/posts/\",\r\n    method: \"POST\",\r\n    body: JSON.stringify(post)\r\n  });\r\n}\r\n\r\nexport function getAllUsers() {\r\n  return request({\r\n    url: API_BASE_URL + \"/user/all\",\r\n    method: \"GET\"\r\n  });\r\n}\r\n\r\nexport function postComment(comment) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/comments/\",\r\n    method: \"POST\",\r\n    body: JSON.stringify(comment)\r\n  });\r\n}\r\n\r\nexport function likePost({ postId, userId }) {\r\n  return request({\r\n    url: API_BASE_URL + \"/posts/\" + postId + \"/likes\",\r\n    method: \"POST\",\r\n    body: JSON.stringify({ postId, userId })\r\n  });\r\n}\r\n\r\nexport function disLikePost({ likeId }) {\r\n  return request({\r\n    url: API_BASE_URL + \"/posts/likes/\" + likeId,\r\n    method: \"DELETE\"\r\n  });\r\n}\r\n\r\nexport function sharePost(post) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/v1/shared-posts\",\r\n    method: \"POST\",\r\n    body: JSON.stringify(post)\r\n  });\r\n}\r\n\r\nexport function getPostById(id) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/v1/posts/\" + id,\r\n    method: \"GET\"\r\n  });\r\n}\r\n\r\nexport function deleteComment(id, userId) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/comments/\" + id + \"/\" + userId,\r\n    method: \"DELETE\"\r\n  });\r\n}\r\n\r\nexport function editComment(id, comment) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/comments/\" + id,\r\n    method: \"PUT\",\r\n    body: JSON.stringify(comment)\r\n  });\r\n}\r\n\r\nexport function deletePost(id) {\r\n  return request({\r\n    url: API_BASE_URL + \"/api/v1/posts/\" + id,\r\n    method: \"DELETE\"\r\n  });\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/util/APIUtils.js b/src/util/APIUtils.js
+--- a/src/util/APIUtils.js	(revision b66565a864d0fbd929c74ebb9adee6404e0ea5ed)
++++ b/src/util/APIUtils.js	(date 1683308072748)
+@@ -1,135 +1,142 @@
+-import { API_BASE_URL, ACCESS_TOKEN } from "../constants";
++import {API_BASE_URL, ACCESS_TOKEN} from "../constants";
+ 
+ const request = options => {
+-  const headers = new Headers({
+-    "Content-Type": "application/json"
+-  });
++    const headers = new Headers({
++        "Content-Type": "application/json"
++    });
+ 
+-  if (localStorage.getItem(ACCESS_TOKEN)) {
+-    headers.append(
+-      "Authorization",
+-      "Bearer " + localStorage.getItem(ACCESS_TOKEN)
+-    );
+-  }
++    if (localStorage.getItem(ACCESS_TOKEN)) {
++        headers.append(
++            "Authorization",
++            "Bearer " + localStorage.getItem(ACCESS_TOKEN)
++        );
++    }
+ 
+-  const defaults = { headers: headers };
+-  options = Object.assign({}, defaults, options);
++    const defaults = {headers: headers};
++    options = Object.assign({}, defaults, options);
+ 
+-  return fetch(options.url, options).then(response =>
+-    response.json().then(json => {
+-      if (!response.ok) {
+-        return Promise.reject(json);
+-      }
+-      return json;
+-    })
+-  );
++    return fetch(options.url, options).then(response =>
++        response.json().then(json => {
++            if (!response.ok) {
++                return Promise.reject(json);
++            }
++            return json;
++        })
++    );
+ };
+ 
+ export function getCurrentUser() {
+-  if (!localStorage.getItem(ACCESS_TOKEN)) {
+-    return Promise.reject("No access token set.");
+-  }
++    if (!localStorage.getItem(ACCESS_TOKEN)) {
++        return Promise.reject("No access token set.");
++    }
+ 
+-  return request({
+-    url: API_BASE_URL + "/user/me",
+-    method: "GET"
+-  });
++    return request({
++        url: API_BASE_URL + "/user/me",
++        method: "GET"
++    });
+ }
+ 
+ export function login(loginRequest) {
+-  return request({
+-    url: API_BASE_URL + "/auth/login",
+-    method: "POST",
+-    body: JSON.stringify(loginRequest)
+-  });
++    return request({
++        url: API_BASE_URL + "/auth/login",
++        method: "POST",
++        body: JSON.stringify(loginRequest)
++    });
+ }
+ 
+ export function signup(signupRequest) {
+-  return request({
+-    url: API_BASE_URL + "/auth/signup",
+-    method: "POST",
+-    body: JSON.stringify(signupRequest)
+-  });
++    return request({
++        url: API_BASE_URL + "/auth/signup",
++        method: "POST",
++        body: JSON.stringify(signupRequest)
++    });
+ }
+ 
+ export function getAllPost() {
+-  return request({
+-    url: API_BASE_URL + "/api/v1/posts/",
+-    method: "GET"
+-  });
++    return request({
++        url: API_BASE_URL + "/api/v1/posts/",
++        method: "GET"
++    });
+ }
+ 
+ export function createPost(post) {
+-  return request({
+-    url: API_BASE_URL + "/api/v1/posts/",
+-    method: "POST",
+-    body: JSON.stringify(post)
+-  });
++    return request({
++        url: API_BASE_URL + "/api/v1/posts/",
++        method: "POST",
++        body: JSON.stringify(post)
++    });
+ }
+ 
+ export function getAllUsers() {
+-  return request({
+-    url: API_BASE_URL + "/user/all",
+-    method: "GET"
+-  });
++    return request({
++        url: API_BASE_URL + "/user/all",
++        method: "GET"
++    });
+ }
+ 
+ export function postComment(comment) {
+-  return request({
+-    url: API_BASE_URL + "/api/comments/",
+-    method: "POST",
+-    body: JSON.stringify(comment)
+-  });
++    return request({
++        url: API_BASE_URL + "/api/comments/",
++        method: "POST",
++        body: JSON.stringify(comment)
++    });
+ }
+ 
+-export function likePost({ postId, userId }) {
+-  return request({
+-    url: API_BASE_URL + "/posts/" + postId + "/likes",
+-    method: "POST",
+-    body: JSON.stringify({ postId, userId })
+-  });
++export function likePost({postId, userId}) {
++    return request({
++        url: API_BASE_URL + "/posts/" + postId + "/likes",
++        method: "POST",
++        body: JSON.stringify({postId, userId})
++    });
+ }
+ 
+-export function disLikePost({ likeId }) {
+-  return request({
+-    url: API_BASE_URL + "/posts/likes/" + likeId,
+-    method: "DELETE"
+-  });
++export function disLikePost({likeId}) {
++    return request({
++        url: API_BASE_URL + "/posts/likes/" + likeId,
++        method: "DELETE"
++    });
+ }
+ 
+ export function sharePost(post) {
+-  return request({
+-    url: API_BASE_URL + "/api/v1/shared-posts",
+-    method: "POST",
+-    body: JSON.stringify(post)
+-  });
++    return request({
++        url: API_BASE_URL + "/api/v1/shared-posts",
++        method: "POST",
++        body: JSON.stringify(post)
++    });
+ }
+ 
+ export function getPostById(id) {
+-  return request({
+-    url: API_BASE_URL + "/api/v1/posts/" + id,
+-    method: "GET"
+-  });
++    return request({
++        url: API_BASE_URL + "/api/v1/posts/" + id,
++        method: "GET"
++    });
+ }
+ 
+ export function deleteComment(id, userId) {
+-  return request({
+-    url: API_BASE_URL + "/api/comments/" + id + "/" + userId,
+-    method: "DELETE"
+-  });
++    return request({
++        url: API_BASE_URL + "/api/comments/" + id + "/" + userId,
++        method: "DELETE"
++    });
+ }
+ 
+ export function editComment(id, comment) {
+-  return request({
+-    url: API_BASE_URL + "/api/comments/" + id,
+-    method: "PUT",
+-    body: JSON.stringify(comment)
+-  });
++    return request({
++        url: API_BASE_URL + "/api/comments/" + id,
++        method: "PUT",
++        body: JSON.stringify(comment)
++    });
+ }
+ 
+ export function deletePost(id) {
+-  return request({
+-    url: API_BASE_URL + "/api/v1/posts/" + id,
+-    method: "DELETE"
+-  });
++    return request({
++        url: API_BASE_URL + "/api/v1/posts/" + id,
++        method: "DELETE"
++    });
+ }
++
++export function deleteProfileById(id) {
++  return request({
++    url: API_BASE_URL + "/user/delete/" + id,
++    method: "DELETE"
++  });
++}
+Index: package-lock.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json	(revision b66565a864d0fbd929c74ebb9adee6404e0ea5ed)
++++ b/package-lock.json	(date 1683282490224)
+@@ -16229,16 +16229,16 @@
+       }
+     },
+     "node_modules/typescript": {
+-      "version": "5.0.4",
+-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.0.4.tgz",
+-      "integrity": "sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==",
++      "version": "4.9.5",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-4.9.5.tgz",
++      "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==",
+       "peer": true,
+       "bin": {
+         "tsc": "bin/tsc",
+         "tsserver": "bin/tsserver"
+       },
+       "engines": {
+-        "node": ">=12.20"
++        "node": ">=4.2.0"
+       }
+     },
+     "node_modules/unbox-primitive": {
+@@ -28844,9 +28844,9 @@
+       }
+     },
+     "typescript": {
+-      "version": "5.0.4",
+-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.0.4.tgz",
+-      "integrity": "sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==",
++      "version": "4.9.5",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-4.9.5.tgz",
++      "integrity": "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==",
+       "peer": true
+     },
+     "unbox-primitive": {

@@ -1,0 +1,36 @@
+.appbg{
+          background-image: url("../img/bgimage3.jpg");
+          
+}
+
+.postbg{
+          background-color: rgb(255, 255, 255);
+}
+
+.headerblack{
+          background-color: black;
+}
+
+.aptitle{
+          text-decoration: none;
+          color: aliceblue;
+}
+
+.navwhite{
+          text-decoration: none;
+          color: #ffffff;;
+}
+
+.profilebg{
+          background-image: url("../img/pro.jpg");
+          
+}
+.loginpg{
+          height: 910px;
+}
+
+.bgwhite{
+    background-color:#ffffff;
+    width: 700px;
+    border-radius: 25px;
+}
